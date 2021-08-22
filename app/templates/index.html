@@ -1,0 +1,165 @@
+{% extends "main_layout.html" %}
+{$ autoescape false %}
+
+{% block app_content %}
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-info m-2">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+{% endwith %}
+<div class="grid grid-cols-3 gap-2 p-2">
+	<div id="posts-container" class="col-span-2 overflow-y-scroll h-screen pr-1">
+		<div id="share-knowledge-btn" class="w-full flex items-center border-2 rounded border-gray-200 py-3 px-4 mb-4 group cursor-pointer">
+			<img class="block w-12 h-12 mr-5" src="{{ current_user.avatar(25) }}">
+			<span class="text-gray-200 group-hover:text-gray-500">Share Your Knowledge</span>
+		</div>
+		<form id="share-form" class="hidden border-b-2 border-gray-200" action="" method="post">
+			{{ form.hidden_tag() }}
+			<div class="mb-4">
+		        <div>{{ form.title(class_="text-input") }}</div>
+		        {% for error in form.title.errors %}
+		        <span class="alert alert-danger">{{ error }}</span>
+		        {% endfor %}
+		    </div>
+		    <div class="mb-4">
+		        <div>{{ form.content(class_="w-full border rounded") }}</div>
+		        {% for error in form.content.errors %}
+		        <span class="alert alert-danger">{{ error }}</span>
+		        {% endfor %}
+		    </div>
+		    <div class="mb-4">
+		        <div class="flex items-center">
+		            <div class="mr-1">{{ form.turn_off_commenting() }}</div>
+		            <div>{{ form.turn_off_commenting.label }}</div>
+		        </div>
+		        {% for error in form.turn_off_commenting.errors %}
+		        <span class="alert alert-danger">{{ error }}</span>
+		        {% endfor %}
+		    </div>
+		    <div class="flex justify-end mb-4">
+		    	<button id="cancel-knowledge-btn" class="btn btn-secondary mr-2">Cancel</button>
+		        {{ form.submit(class_="btn btn-primary") }}
+		    </div>
+		</form>
+		<div id="posts"></div>
+	</div>
+	<div class="border-l border-gray-200 pl-3 overflow-y-scroll h-screen">
+		<div>
+			<h2 class="text-2xl font-semibold mb-4">Peers</h2>
+			<div>
+				{% for peer in current_user.peered %}
+				<div class="mb-2">
+					<a href="{{ url_for('main.user', user_id=peer.id) }}" class="flex items-center">
+						<img class="block w-5 h-5 mr-3 rounded" src="{{ peer.avatar(25) }}">
+						{{ peer.full_name }}
+					</a>
+				</div>
+				{% endfor %}
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block tail %}
+{{ super() }}
+{{ ckeditor.load() }}
+{{ ckeditor.config(name='content') }}
+<script type="text/javascript">
+	const posts = $("#posts");
+	let page = 1;
+
+	function postHTML(item) {
+		return `
+			<a class="block border-b-2 border-gray-200 py-3 px-4 mb-4" href="/post_details/${item.id}">
+				<div class="flex justify-between relative">
+					<h1 class="text-3xl mb-2 mr-3">${item.title}</h1>
+				</div>
+				<div class="flex items-center mb-4">
+					<img class="block w-5 h-5 mr-2" src="${item.author.avatar}">
+					<p class="text-gray-500"><strong class="text-black">${item.author.full_name}</strong> posted at ${item.date_posted}</p>
+				</div>
+				<div class="flex items-center">
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chat-left-dots-fill mr-2" viewBox="0 0 16 16">
+						<path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4.414a1 1 0 0 0-.707.293L.854 15.146A.5.5 0 0 1 0 14.793V2zm5 4a1 1 0 1 0-2 0 1 1 0 0 0 2 0zm4 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0zm3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+					</svg>
+					<span>${item.comment_count}</span>
+				</div>
+			</a>
+		`;
+	}
+
+	function getPosts(page) {
+		$.getJSON(`/get_posts?page=${page}`, function (data) {
+			data.forEach((item) => {
+				posts.html(posts.html() + postHTML(item));
+			});
+		});
+	}
+
+	function refreshPosts() {
+		page = 1;
+		posts.html("");
+		getPosts(page);
+		page++;
+	}
+
+	$(function() {
+		getPosts(page);
+		page++;
+
+		$("#posts-container").on("scroll", function() {
+            if ($(this).scrollTop() + $(this).innerHeight() >= $(this)[0].scrollHeight) {
+                getPosts(page);
+                page++;
+            }
+        });
+	});
+</script>
+<script type="text/javascript">
+	const shareBtn = $("#share-knowledge-btn");
+	const cancelBtn = $("#cancel-knowledge-btn");
+	const shareForm = $("#share-form");
+
+	function displayShare() {
+		shareBtn.addClass("hidden");
+		shareForm.removeClass("hidden");
+		shareForm.addClass("block");
+	}
+
+	function closeShare() {
+		shareForm.removeClass("block");
+		shareForm.addClass("hidden")
+		shareBtn.removeClass("hidden");
+	}
+
+	shareBtn.click(displayShare);
+	cancelBtn.click(closeShare);
+
+	shareForm.submit(function(evt) {
+		const fd = new FormData();
+
+		$(this).serializeArray().forEach((obj, index) => (index !== 2 && fd.append(obj.name, obj.value)));
+		fd.append("content", CKEDITOR.instances["content"].getData());
+
+		$.ajax({
+			url: "/create_post",
+			data: fd,
+			cache: false,
+			processData: false,
+			contentType: false,
+			type: "POST",
+			success: function(data) {
+				shareForm.trigger("reset");
+				CKEDITOR.instances["content"].setData("");
+				closeShare();
+				refreshPosts();
+			}
+		});
+
+		evt.preventDefault();
+	});
+</script>
+{% endblock %}

@@ -1,0 +1,12 @@
+Dear {{ user.full_name }}
+
+To confirm your email click on the following link:
+
+{{ url_for('auth.confirm_email', token=token, _external=True) }}
+
+Alternatively, you can paste the following link in your browser's address bar:
+{{ url_for('auth.confirm_email', token=token, _external=True) }}
+
+Sincerely,
+
+The Microblog Team

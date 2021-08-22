@@ -1,0 +1,15 @@
+<a class="block border-b-2 border-gray-200 py-3 px-4 mb-4" href="{{ url_for('main.post_details', post_id=post.id) }}">
+	<div class="flex justify-between relative">
+		<h1 class="text-3xl mb-2 mr-3">{{ post.title }}</h1>
+	</div>
+	<div class="flex items-center mb-4">
+		<img class="block w-5 h-5 mr-2" src="{{ post.author.avatar(25) }}">
+		<p class="text-gray-500"><strong class="text-black">{{ post.author.full_name }}</strong> posted at {{ post.date_posted }}</p>
+	</div>
+	<div class="flex items-center">
+		<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chat-left-dots-fill mr-2" viewBox="0 0 16 16">
+			<path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4.414a1 1 0 0 0-.707.293L.854 15.146A.5.5 0 0 1 0 14.793V2zm5 4a1 1 0 1 0-2 0 1 1 0 0 0 2 0zm4 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0zm3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+		</svg>
+		<span>{{ post.comments|length }}</span>
+	</div>
+</a>

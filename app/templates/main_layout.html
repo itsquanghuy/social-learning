@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block body %}
+<header class="p-2 border-b border-gray-200 sticky top-0 left-0 z-40 bg-white">
+    <nav class="flex justify-between items-center">
+        <div>
+            <a href="{{ url_for('main.index') }}">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-bookmarks-fill w-12 h-12" viewBox="0 0 16 16">
+                    <path d="M2 4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v11.5a.5.5 0 0 1-.777.416L7 13.101l-4.223 2.815A.5.5 0 0 1 2 15.5V4z"/>
+                    <path d="M4.268 1A2 2 0 0 1 6 0h6a2 2 0 0 1 2 2v11.5a.5.5 0 0 1-.777.416L13 13.768V2a1 1 0 0 0-1-1H4.268z"/>
+                </svg>
+            </a>
+        </div>
+        {% if not current_user.is_anonymous %}
+        <ul class="flex items-center">
+            <li>
+                <a href="{{ url_for('main.communities') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-people-fill w-12 h-12" viewBox="0 0 16 16">
+                        <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                        <path fill-rule="evenodd" d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z"/>
+                        <path d="M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
+                    </svg>
+                </a>
+            </li>
+            <li class="ml-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-chat-fill w-12 h-12" viewBox="0 0 16 16">
+                    <path d="M8 15c4.418 0 8-3.134 8-7s-3.582-7-8-7-8 3.134-8 7c0 1.76.743 3.37 1.97 4.6-.097 1.016-.417 2.13-.771 2.966-.079.186.074.394.273.362 2.256-.37 3.597-.938 4.18-1.234A9.06 9.06 0 0 0 8 15z"/>
+                </svg>
+            </li>
+            <li class="ml-4">
+                <a href="">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-bell-fill w-12 h-12" viewBox="0 0 16 16">
+                        <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zm.995-14.901a1 1 0 1 0-1.99 0A5.002 5.002 0 0 0 3 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901z"/>
+                    </svg>
+                </a>
+            </li>
+            <li class="ml-4 relative">
+                <button id="user-dropdown" class="block">
+                    <img class="w-12 h-12" src="{{ current_user.avatar(25) }}">
+                </button>
+                <div id="popover" class="absolute right-0 bg-white z-50 border rounded border-gray-200 hidden">
+                    <a class="block hover:bg-gray-200 p-2" href="{{ url_for('main.user', user_id=current_user.id) }}">Profile</a>
+                    <a class="block hover:bg-gray-200 p-2" href="{{ url_for('auth.logout') }}">Logout</a>
+                </div>
+            </li>
+        </ul>
+        {% endif %}
+    </nav>
+</header>
+<main>
+    {% block app_content %}{% endblock %}
+</main>
+{% endblock %}
+
+{% block tail %}
+{{ super() }}
+<script type="text/javascript">
+    let dropdownOpened = false;
+
+    $("#user-dropdown").click(function() {
+        const popover = $("#popover");
+
+        if (dropdownOpened) {
+            popover.addClass("hidden");
+            dropdownOpened = false;
+        } else {
+            popover.removeClass("hidden");
+            dropdownOpened = true;
+        }
+    });
+</script>
+{% endblock %}

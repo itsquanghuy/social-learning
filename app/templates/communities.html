@@ -1,0 +1,46 @@
+{% extends "main_layout.html" %}
+
+{% block app_content %}
+<div class="grid grid-cols-3 gap-2 p-2">
+	{% with messages = get_flashed_messages() %}
+	{% if messages %}
+	    {% for message in messages %}
+	    <div class="alert alert-info col-span-3">{{ message }}</div>
+	    {% endfor %}
+	{% endif %}
+	{% endwith %}
+	<div class="col-span-2 py-3 px-4 grid grid-cols-2 gap-2">
+		<h1 class="col-span-2 text-3xl font-semibold mb-5">Invited to Join</h1>
+		{% for community in invited_to_join %}	
+		<a href="{{ url_for('main.community', community_id=community.id) }}" class="block border border-gray-200 rounded p-2 h-24 hover:border-gray-400">
+			<h2 class="text-xl font-semibold">{{ community.name }}</h2>
+			<div class="flex items-center">
+				{% include "_visibility_icon.html" %}
+				<p class="ml-1">- {{ community.member_count() }} members</p>
+			</div>
+		</a>
+		{% endfor %}
+	</div>
+	<div class="col-span-2 py-3 px-4 grid grid-cols-2 gap-2">
+		<h1 class="col-span-2 text-3xl font-semibold mb-5">My Communities</h1>
+		<a href="{{ url_for('main.create_community') }}" class="block border border-gray-200 rounded p-2 h-24 hover:border-gray-400">
+			<div class="w-full h-full flex flex-col justify-center items-center">
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16">
+					<path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+					<path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+				</svg>
+				<span>Create a Community</span>
+			</div>
+		</a>
+		{% for community in my_communities %}	
+		<a href="{{ url_for('main.community', community_id=community.id) }}" class="block border border-gray-200 rounded p-2 h-24 hover:border-gray-400">
+			<h2 class="text-xl font-semibold">{{ community.name }}</h2>
+			<div class="flex items-center">
+				{% include "_visibility_icon.html" %}
+				<p class="ml-1">- {{ community.member_count() }} members</p>
+			</div>
+		</a>
+		{% endfor %}
+	</div>
+</div>
+{% endblock %}

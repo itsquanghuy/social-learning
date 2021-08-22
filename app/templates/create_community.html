@@ -1,0 +1,43 @@
+{% extends "main_layout.html" %}
+
+{% block app_content %}
+<div class="flex flex-column justify-center items-center h-screen">
+	<form action="" method="post" class="w-11/12 sm:w-8/12 md:w-1/2 lg:w-5/12 xl:w-2/6 2xl:w-1/2">
+		<h1 class="mb-10 text-center text-2xl font-semibold">Create a Community</h1>
+	    {{ form.hidden_tag() }}
+	    <div class="mb-4">
+	        <div class="mb-2"><strong>{{ form.name.label }}</strong></div>
+	        <div>{{ form.name(class_="text-input") }}</div>
+	        {% for error in form.name.errors %}
+	        <span class="alert alert-danger">{{ error }}</span>
+	        {% endfor %}
+	    </div>
+	    <div class="mb-4">
+	        <div class="mb-2"><strong>{{ form.description.label }}</strong></div>
+	        <div>{{ form.description(class_="w-full border rounded") }}</div>
+	        {% for error in form.description.errors %}
+	        <span class="alert alert-danger">{{ error }}</span>
+	        {% endfor %}
+	    </div>
+	    <div class="mb-4">
+	        <div class="mb-2"><strong>{{ form.visibility.label }}</strong></div>
+	        <div>{{ form.visibility() }}</div>
+	        {% for error in form.visibility.errors %}
+	        <span class="alert alert-danger">{{ error }}</span>
+	        {% endfor %}
+	    </div>
+	    <div class="mb-4">
+	        <div class="flex items-center">
+	            <div class="mr-1">{{ form.restrict_posting() }}</div>
+	            <div>{{ form.restrict_posting.label }}</div>
+	        </div>
+	        {% for error in form.restrict_posting.errors %}
+	        <span class="alert alert-danger">{{ error }}</span>
+	        {% endfor %}
+	    </div>
+	    <div class="flex justify-end mb-4">
+	        {{ form.submit(class_="btn btn-primary") }}
+	    </div>
+	</form>
+</div>
+{% endblock %}

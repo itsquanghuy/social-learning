@@ -1,0 +1,610 @@
+{% extends "main_layout.html" %}
+
+{% set joined = current_user.joined(community) %}
+{% set is_admin = current_user.is_admin_of(community) %}
+{% set is_creator = current_user.is_creator_of(community) %}
+
+{% block app_content %}
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-info m-2">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+{% endwith %}
+<div class="m-2 rounded border border-gray-200 py-3 px-4 pt-20">
+	<h1 class="text-4xl font-semibold mb-4">{{ community.name }}</h1>
+	{% if not joined %}
+		<div class="flex">
+			{% if current_user.join_requested(community) %}
+			<a href="{{ url_for('main.cancel_join_request', community_id=community.id) }}" class="btn btn-secondary">Cancel Request</a>
+			{% elif current_user.join_invited(community) %}
+			<a href="{{ url_for('main.decline_join_invitation', community_id=community.id) }}" class="btn btn-secondary mr-2">Decline Invitation</a>
+			<a href="{{ url_for('main.accept_join_invitation', community_id=community.id) }}" class="btn btn-primary">Accept Invitation</a>
+			{% elif community.visibility.name != "secret" %}
+			<a href="{{ url_for('main.join_community', community_id=community.id) }}" class="btn btn-primary">Join</a>
+			{% endif %}
+		</div>
+	{% else %}
+	<div class="flex">
+		<a href="{{ url_for('main.leave_community', community_id=community.id) }}" class="block">
+			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-door-open-fill" viewBox="0 0 16 16">
+				<path d="M1.5 15a.5.5 0 0 0 0 1h13a.5.5 0 0 0 0-1H13V2.5A1.5 1.5 0 0 0 11.5 1H11V.5a.5.5 0 0 0-.57-.495l-7 1A.5.5 0 0 0 3 1.5V15H1.5zM11 2h.5a.5.5 0 0 1 .5.5V15h-1V2zm-2.5 8c-.276 0-.5-.448-.5-1s.224-1 .5-1 .5.448.5 1-.224 1-.5 1z"/>
+			</svg>
+		</a>
+		{% if is_admin %}
+		<a href="{{ url_for('main.delete_community', community_id=community.id) }}" class="block ml-1">
+			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">
+			 	<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
+			</svg>
+		</a>
+		{% endif %}
+	</div>
+	{% endif %}
+</div>
+<div id="tabs" class="grid grid-cols-4 gap-2 p-2">
+	<ul>
+		<li class="p-2"><a href="#about">About</a></li>
+		<li class="p-2"><a href="#community_posts">Posts</a></li>
+		{% if joined or community.visibility.name == "public" %}
+		<li class="p-2"><a href="#members">Members</a></li>
+		{% endif %}
+		{% if joined and is_admin %}
+		<li class="p-2"><a href="#member-requests">Member Requests</a></li>
+		{% endif %}
+	</ul>
+	<div id="posts-container" class="col-span-3 overflow-y-scroll h-screen pr-1">
+		<div id="about">
+			{% if community.description %}
+			<div class="mb-10">
+				<h2 class="text-2xl mb-4">Description</h2>
+				<p>{{ community.description }}</p>
+			</div>
+			{% endif %}
+			{% if community.visibility %}
+			<div class="mb-10">
+				<h2 class="text-2xl mb-4">Visibility</h2>
+				<p>{{ community.visibility.name }}</p>
+			</div>
+			{% endif %}
+			{% if community.restrict_posting %}
+			<div class="mb-10">
+				<h2 class="text-2xl mb-4">Restrict Posting</h2>
+				<p>Yes</p>
+			</div>
+			{% endif %}
+			{% if is_admin %}
+			<button id="toggle-edit" type="button" class="link">Edit your community profile</button>
+			<div id="edit-dialog">
+				<form action="{{ url_for('main.edit_community_profile', community_id=community.id) }}" method="post">
+				    {{ community_form.hidden_tag() }}
+				    <div class="mb-4">
+				        <div class="mb-2">{{ community_form.name.label }}</div>
+				        <div>{{ community_form.name(class_="text-input") }}</div>
+				        {% for error in community_form.name.errors %}
+				        <span class="alert alert-danger">{{ error }}</span>
+				        {% endfor %}
+				    </div>
+				    <div class="mb-4">
+				        <div>{{ community_form.description.label }}</div>
+				        <div>{{ community_form.description(class_="text-input") }}</div>
+				        {% for error in community_form.description.errors %}
+				        <span class="alert alert-danger">{{ error }}</span>
+				        {% endfor %}
+				    </div>
+				    <div class="mb-4">
+			            <div>{{ community_form.visibility.label }}</div>
+			            <div>{{ community_form.visibility() }}</div>
+				        {% for error in community_form.visibility.errors %}
+				        <span class="alert alert-danger">{{ error }}</span>
+				        {% endfor %}
+				    </div>
+				    <div class="mb-4">
+				        <div class="flex items-center">
+				            <div class="mr-1">{{ community_form.restrict_posting() }}</div>
+				            <div>{{ community_form.restrict_posting.label }}</div>
+				        </div>
+				        {% for error in community_form.restrict_posting.errors %}
+				        <span class="alert alert-danger">{{ error }}</span>
+				        {% endfor %}
+				    </div>
+				    <div class="flex justify-end mb-4">
+				    	<button class="btn btn-primary">Save</button>
+				    </div>
+				</form>
+			</div>
+			{% endif %}
+		</div>
+		<div id="community_posts">
+			{% if joined %}
+				{% if community.restrict_posting %}
+					{% if is_admin %}
+					<div id="share-knowledge-btn" class="w-full flex items-center border-2 rounded border-gray-200 py-3 px-4 mb-4 group cursor-pointer">
+						<img class="block w-12 h-12 mr-5" src="{{ current_user.avatar(25) }}">
+						<span class="text-gray-200 group-hover:text-gray-500">Share Your Knowledge</span>
+					</div>
+					<form id="share-form" class="hidden border-b-2 border-gray-200" action="" method="post">
+						{{ post_form.hidden_tag() }}
+						<div class="mb-4">
+					        <div>{{ post_form.title(class_="text-input") }}</div>
+					        {% for error in post_form.title.errors %}
+					        <span class="alert alert-danger">{{ error }}</span>
+					        {% endfor %}
+					    </div>
+					    <div class="mb-4">
+					        <div>{{ post_form.content(class_="w-full border rounded") }}</div>
+					        {% for error in post_form.content.errors %}
+					        <span class="alert alert-danger">{{ error }}</span>
+					        {% endfor %}
+					    </div>
+					    <div class="mb-4">
+					        <div class="flex items-center">
+					            <div class="mr-1">{{ post_form.turn_off_commenting() }}</div>
+					            <div>{{ post_form.turn_off_commenting.label }}</div>
+					        </div>
+					        {% for error in post_form.turn_off_commenting.errors %}
+					        <span class="alert alert-danger">{{ error }}</span>
+					        {% endfor %}
+					    </div>
+					    <div class="flex justify-end mb-4">
+					    	<button id="cancel-knowledge-btn" class="btn btn-secondary mr-2">Cancel</button>
+					        {{ post_form.submit(class_="btn btn-primary") }}
+					    </div>
+					</form>
+					{% endif %}
+				{% else %}
+				<div id="share-knowledge-btn" class="w-full flex items-center border-2 rounded border-gray-200 py-3 px-4 mb-4 group cursor-pointer">
+					<img class="block w-12 h-12 mr-5" src="{{ current_user.avatar(25) }}">
+					<span class="text-gray-200 group-hover:text-gray-500">Share Your Knowledge</span>
+				</div>
+				<form id="share-form" class="hidden border-b-2 border-gray-200" action="" method="post">
+					{{ post_form.hidden_tag() }}
+					<div class="mb-4">
+				        <div>{{ post_form.title(class_="text-input") }}</div>
+				        {% for error in post_form.title.errors %}
+				        <span class="alert alert-danger">{{ error }}</span>
+				        {% endfor %}
+				    </div>
+				    <div class="mb-4">
+				        <div>{{ post_form.content(class_="w-full border rounded") }}</div>
+				        {% for error in post_form.content.errors %}
+				        <span class="alert alert-danger">{{ error }}</span>
+				        {% endfor %}
+				    </div>
+				    <div class="mb-4">
+				        <div class="flex items-center">
+				            <div class="mr-1">{{ post_form.turn_off_commenting() }}</div>
+				            <div>{{ post_form.turn_off_commenting.label }}</div>
+				        </div>
+				        {% for error in post_form.turn_off_commenting.errors %}
+				        <span class="alert alert-danger">{{ error }}</span>
+				        {% endfor %}
+				    </div>
+				    <div class="flex justify-end mb-4">
+				    	<button id="cancel-knowledge-btn" class="btn btn-secondary mr-2">Cancel</button>
+				        {{ post_form.submit(class_="btn btn-primary") }}
+				    </div>
+				</form>
+				{% endif %}
+			{% endif %}
+			{% if joined or community.visibility.name == "public" %}
+			<div id="posts"></div>
+			{% endif %}
+		</div>
+		{% if joined or community.visibility.name == "public" %}
+		<div id="members">
+			{% if is_admin %}
+			<form id="invite-form" class="m-2 flex items-center justify-between" action="" method="post">
+				{{ invite_form.hidden_tag() }}
+				<div class="mr-2 flex-grow">
+			        <div>{{ invite_form.email(class_="text-input") }}</div>
+			        {% for error in invite_form.email.errors %}
+			        <span class="alert alert-danger">{{ error }}</span>
+			        {% endfor %}
+			    </div>
+			    <div class="mr-2">
+			        <div>{{ invite_form.role(class_="text-input") }}</div>
+			        {% for error in invite_form.role.errors %}
+			        <span class="alert alert-danger">{{ error }}</span>
+			        {% endfor %}
+			    </div>
+			    <div>
+			        {{ invite_form.submit(class_="btn btn-primary") }}
+			    </div>
+			</form>
+			{% endif %}
+			<div id="member-list"></div>
+		</div>
+		{% endif %}
+		{% if joined and is_admin %}
+		<div id="member-requests"></div>
+		{% endif %}
+	</div>
+</div>
+{% endblock %}
+
+{% block tail %}
+{{ super() }}
+{{ ckeditor.load() }}
+{{ ckeditor.config(name='content') }}
+{% if joined or community.visibility.name == "public" %}
+<script type="text/javascript">
+	const posts = $("#posts");
+	let page = 1;
+
+	function postHTML(item) {
+		return `
+			<a class="block border-b-2 border-gray-200 py-3 px-4 mb-4" href="/communities/post_details/${item.id}">
+				<div class="flex justify-between relative">
+					<h1 class="text-3xl mb-2 mr-3">${item.title}</h1>
+				</div>
+				<div class="flex items-center mb-4">
+					<img class="block w-5 h-5 mr-2" src="${item.author.avatar}">
+					<p class="text-gray-500"><strong class="text-black">${item.author.full_name}</strong> posted at ${item.date_posted}</p>
+				</div>
+				<div class="flex items-center">
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chat-left-dots-fill mr-2" viewBox="0 0 16 16">
+						<path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4.414a1 1 0 0 0-.707.293L.854 15.146A.5.5 0 0 1 0 14.793V2zm5 4a1 1 0 1 0-2 0 1 1 0 0 0 2 0zm4 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0zm3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+					</svg>
+					<span>${item.comment_count}</span>
+				</div>
+			</a>
+		`;
+	}
+
+	function getPosts(page) {
+		$.getJSON(`/get_posts?page=${page}&community_id={{ community.id }}`, function (data) {
+			data.forEach((item) => {
+				posts.html(posts.html() + postHTML(item));
+			});
+		});
+	}
+
+	function refreshPosts() {
+		page = 1;
+		posts.html("");
+		getPosts(page);
+		page++;
+	}
+
+	$(function() {
+		getPosts(page);
+		page++;
+
+		$("#posts-container").on("scroll", function() {
+            if ($(this).scrollTop() + $(this).innerHeight() >= $(this)[0].scrollHeight) {
+                getPosts(page);
+                page++;
+            }
+        });
+	});
+</script>
+{% endif %}
+{% if joined %}
+	{% if community.restrict_posting %}
+		{% if is_admin %}
+		<script type="text/javascript">
+			const shareBtn = $("#share-knowledge-btn");
+			const cancelBtn = $("#cancel-knowledge-btn");
+			const shareForm = $("#share-form");
+
+			function displayShare() {
+				shareBtn.addClass("hidden");
+				shareForm.removeClass("hidden");
+				shareForm.addClass("block");
+			}
+
+			function closeShare() {
+				shareForm.removeClass("block");
+				shareForm.addClass("hidden")
+				shareBtn.removeClass("hidden");
+			}
+
+			shareBtn.click(displayShare);
+			cancelBtn.click(closeShare);
+
+			shareForm.submit(function(evt) {
+				const fd = new FormData();
+
+				$(this).serializeArray().forEach((obj, index) => (index !== 2 && fd.append(obj.name, obj.value)));
+				fd.append("content", CKEDITOR.instances["content"].getData());
+
+				$.ajax({
+					url: "/create_post?community_id={{ community.id }}",
+					data: fd,
+					cache: false,
+					processData: false,
+					contentType: false,
+					type: "POST",
+					success: function(data) {
+						shareForm.trigger("reset");
+						CKEDITOR.instances["content"].setData("");
+						closeShare();
+						refreshPosts();
+					}
+				});
+
+				evt.preventDefault();
+			});
+		</script>
+		{% endif %}
+	{% else %}
+	<script type="text/javascript">
+		const shareBtn = $("#share-knowledge-btn");
+		const cancelBtn = $("#cancel-knowledge-btn");
+		const shareForm = $("#share-form");
+
+		function displayShare() {
+			shareBtn.addClass("hidden");
+			shareForm.removeClass("hidden");
+			shareForm.addClass("block");
+		}
+
+		function closeShare() {
+			shareForm.removeClass("block");
+			shareForm.addClass("hidden")
+			shareBtn.removeClass("hidden");
+		}
+
+		shareBtn.click(displayShare);
+		cancelBtn.click(closeShare);
+
+		shareForm.submit(function(evt) {
+			const fd = new FormData();
+
+			$(this).serializeArray().forEach((obj, index) => (index !== 2 && fd.append(obj.name, obj.value)));
+			fd.append("content", CKEDITOR.instances["content"].getData());
+
+			$.ajax({
+				url: "/create_post?community_id={{ community.id }}",
+				data: fd,
+				cache: false,
+				processData: false,
+				contentType: false,
+				type: "POST",
+				success: function(data) {
+					shareForm.trigger("reset");
+					CKEDITOR.instances["content"].setData("");
+					closeShare();
+					refreshPosts();
+				}
+			});
+
+			evt.preventDefault();
+		});
+	</script>
+	{% endif %}
+{% endif %}
+{% if joined or community.visibility.name == "public" %}
+<script type="text/javascript">
+	const inviteForm = $("#invite-form");
+	inviteForm.submit(function(evt) {
+		const fd = new FormData();
+		$(this).serializeArray().forEach((obj, index) => fd.append(obj.name, obj.value));
+
+		$.ajax({
+			url: "/invite/{{ community.id }}",
+			data: fd,
+			cache: false,
+			processData: false,
+			contentType: false,
+			type: "POST",
+			success: function(data) {
+				inviteForm.trigger("reset");
+			}
+		});
+
+		evt.preventDefault();
+	});
+</script>
+{% endif %}
+{% if joined or community.visibility.name == "public" %}
+<script type="text/javascript">
+	const memberListContainer = $("#member-list");
+
+	function creatorHTML(item) {
+		return `
+			<div class="flex justify-between items-center border-b-2 border-gray-200 py-3 px-4 mb-4">
+				<a class="flex items-center" href="/user/${item.user.id}">
+					<img class="block w-12 h-12 mr-5" src="${item.user.avatar}">
+					<p>${item.user.full_name} <span class="bg-blue-300 text-xs p-1 rounded text-gray-50">${item.role.name}</span></p>
+				</a>
+			</div>
+		`;
+	}
+
+	function adminHTML(item) {
+		return `
+			<div class="flex justify-between items-center border-b-2 border-gray-200 py-3 px-4 mb-4">
+				<a class="flex items-center" href="/user/${item.user.id}">
+					<img class="block w-12 h-12 mr-5" src="${item.user.avatar}">
+					<p>${item.user.full_name} <span class="bg-green-300 text-xs p-1 rounded text-gray-50">${item.role.name}</span></p>
+				</a>
+				{% if is_creator %}
+				<div class="flex items-center">
+					<a class="block mr-2 remove-member-btn" href="/communities/{{ community.id }}/remove_member/${item.user.id}">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">
+						 	<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
+						</svg>
+					</a>
+				</div>
+				{% endif %}
+			</div>
+		`;
+	}
+
+	function memberHTML(item) {
+		return `
+			<div class="flex justify-between items-center border-b-2 border-gray-200 py-3 px-4 mb-4">
+				<a class="flex items-center" href="/user/${item.user.id}">
+					<img class="block w-12 h-12 mr-5" src="${item.user.avatar}">
+					<p>${item.user.full_name} <span class="bg-gray-700 text-xs p-1 rounded text-gray-50">${item.role.name}</span></p>
+				</a>
+				{% if is_admin %}
+				<div class="flex items-center">
+					<a class="block mr-2 remove-member-btn" href="/communities/{{ community.id }}/remove_member/${item.user.id}">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">
+						 	<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
+						</svg>
+					</a>
+				</div>
+				{% endif %}
+			</div>
+		`;
+	}
+
+	function getMemberList() {
+		$.getJSON("/communities/{{ community.id }}/get_members", function(data) {
+			const creators = data.filter((item) => item.role.name === "creator");
+			const admins = data.filter((item) => item.role.name === "admin");
+			const members = data.filter((item) => item.role.name === "member");
+
+			creators.forEach((item) => {
+				memberListContainer.html(memberListContainer.html() + creatorHTML(item));
+			});
+
+			admins.forEach((item) => {
+				memberListContainer.html(memberListContainer.html() + adminHTML(item));
+			});
+
+			members.forEach((item) => {
+				memberListContainer.html(memberListContainer.html() + memberHTML(item));
+			});
+
+			$(".remove-member-btn").click(function(evt) {
+				$.ajax({
+					url: $(evt.currentTarget).attr("href"),
+					cache: false,
+					processData: false,
+					contentType: false,
+					type: "DELETE",
+					success: function(data) {
+						refreshMemberList();
+					}
+				});
+				evt.preventDefault();
+			});
+		});
+	}
+
+	function refreshMemberList() {
+		memberListContainer.html("");
+		getMemberList();
+	}
+
+	$(function() {
+		getMemberList();
+	});
+</script>
+{% endif %}
+{% if joined and is_admin %}
+<script type="text/javascript">
+	const joinRequestsContainer = $("#member-requests");
+
+	function joinRequestHTML(item) {
+		return `
+			<div class="flex justify-between items-center border-b-2 border-gray-200 py-3 px-4 mb-4">
+				<a class="flex items-center" href="/user/${item.user.id}">
+					<img class="block w-12 h-12 mr-5" src="${item.user.avatar}">
+					<p>${item.user.full_name}</p>
+				</a>
+				<div class="flex items-center">
+					<a class="block mr-2 approve-member-btn" href="/communities/{{ community.id }}/approve_request/${item.user.id}">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check2" viewBox="0 0 16 16">
+							<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+						</svg>
+					</a>
+					<a class="block decline-member-btn" href="/communities/{{ community.id }}/decline_request/${item.user.id}">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x" viewBox="0 0 16 16">
+							<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+						</svg>
+					</a>
+				</div>
+			</div>
+		`;
+	}
+
+	function getJoinRequests() {
+		$.getJSON("/communities/{{ community.id }}/join_requests", function (data) {
+			data.forEach((item) => {
+				joinRequestsContainer.html(joinRequestsContainer.html() + joinRequestHTML(item));
+			});
+
+			$(".approve-member-btn").click(function(evt) {
+				$.ajax({
+					url: $(evt.currentTarget).attr("href"),
+					cache: false,
+					processData: false,
+					contentType: false,
+					type: "PUT",
+					success: function(data) {
+						refreshJoinRequests();
+					}
+				});
+				evt.preventDefault();
+			});
+
+			$(".decline-member-btn").click(function(evt) {
+				$.ajax({
+					url: $(evt.currentTarget).attr("href"),
+					cache: false,
+					processData: false,
+					contentType: false,
+					type: "DELETE",
+					success: function(data) {
+						refreshJoinRequests();
+					}
+				});
+				evt.preventDefault();
+			});
+		});
+	}
+
+	function refreshJoinRequests() {
+		joinRequestsContainer.html("");
+		getJoinRequests();
+	}
+
+	$(function() {
+		getJoinRequests();
+	});
+</script>
+{% endif %}
+<script type="text/javascript">
+	$(document).ready(function() {
+		$("#tabs").tabs({ active: 1 });
+		$(".ui-tabs-nav").children(".ui-tabs-tab").each(setActiveTab);		
+		$(".ui-tabs-nav").click(function(evt) {
+			$(this).children(".ui-tabs-tab").each(setActiveTab);
+		});
+
+		$("#edit-dialog").dialog({ autoOpen: false, modal: true });
+		$("#toggle-edit").click(function() {
+			$("#edit-dialog").dialog("open");
+			$(".ui-dialog").removeAttr("style");
+			$(".ui-dialog").removeClass("hidden");
+			$(".ui-dialog").addClass("absolute top-0 left-0 w-full h-screen bg-black bg-opacity-30 flex flex-column justify-center items-center");
+			$("#edit-dialog").removeAttr("style");
+			$("#edit-dialog").addClass("bg-white w-11/12 sm:w-8/12 md:w-1/2 lg:w-5/12 xl:w-2/6 2xl:w-1/2 p-4 rounded border border-gray-400");
+			$("#edit-dialog").prepend($(".ui-dialog-titlebar"));
+			$(".ui-dialog-titlebar").addClass("flex justify-end mb-6");
+			$(".ui-dialog-titlebar").find("button").removeAttr("title");
+			$(".ui-dialog-titlebar").find("button").html(`
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-circle w-5 h-5" viewBox="0 0 16 16">
+					<path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+					<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+				</svg>
+			`);
+		});
+		$(".ui-dialog").removeAttr("style");
+		$(".ui-dialog").addClass("hidden");
+	});
+
+	function setActiveTab() {
+		if ($(this).attr("class").split(" ").includes("ui-state-active")) 
+			$(this).addClass("active");
+		else
+			$(this).removeClass("active");
+	}
+</script>
+{% endblock %}

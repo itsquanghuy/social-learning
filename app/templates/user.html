@@ -1,0 +1,153 @@
+{% extends "main_layout.html" %}
+
+{% block app_content %}
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-info m-2">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+{% endwith %}
+<div class="p-5">
+	<div class="grid grid-cols-4 gap-3 pb-5">
+		<div>
+			<img src="{{ user.avatar(256) }}">
+		</div>
+		<div class="col-span-3">
+			<h1 class="text-7xl mb-5">{{ user.full_name }}</h1>
+            <p class="mb-10">{{ user.peered.count() }} peers</p>
+			{% if user == current_user %}
+            {% elif current_user.is_peer_requesting(user) %}
+            <p>
+            	<form action="{{ url_for('main.cancel_peer_request', user_id=user.id) }}" method="post">
+                    {{ connection_form.hidden_tag() }}
+                    {{ connection_form.submit(value='Cancel Request', class_='btn btn-primary') }}
+                </form>
+            </p>
+            {% elif current_user.have_peer_request_from(user) %}
+            <p>
+            	<form action="{{ url_for('main.accept_peer_request', user_id=user.id) }}" method="post">
+                    {{ connection_form.hidden_tag() }}
+                    {{ connection_form.submit(value='Accept Request', class_='btn btn-primary') }}
+                </form>
+            </p>
+            {% elif not current_user.is_connected(user) %}
+            <p>
+                <form action="{{ url_for('main.peer_request', user_id=user.id) }}" method="post">
+                    {{ connection_form.hidden_tag() }}
+                    {{ connection_form.submit(value='Connect', class_='btn btn-primary') }}
+                </form>
+            </p>
+            {% else %}
+            <p>
+                <form action="{{ url_for('main.disconnect', user_id=user.id) }}" method="post">
+                    {{ connection_form.hidden_tag() }}
+                    {{ connection_form.submit(value='Disconnect', class_='btn btn-primary') }}
+                </form>
+            </p>
+            {% endif %}
+		</div>
+	</div>
+	<hr>
+	<div id="tabs" class="grid grid-cols-4 gap-3 my-2">
+		<ul>
+			<li class="p-2"><a href="#about">About</a></li>
+			<li class="p-2"><a href="#my_post">Posts</a></li>
+		</ul>
+		<div class="col-span-3">
+			<div id="about">
+				{% if user.about_me %}
+				<div class="mb-10">
+					<h2 class="text-2xl mb-4">Description</h2>
+					<p>{{ user.about_me }}</p>
+				</div>
+				{% endif %}
+				{% if user.date_of_birth %}
+				<div class="mb-10">
+					<h2 class="text-2xl mb-4">Date of Birth</h2>
+					<p>{{ user.date_of_birth }}</p>
+				</div>
+				{% endif %}
+				{% if user == current_user %}
+				<button id="toggle-edit" type="button" class="link">Edit your profile</button>
+				<div id="edit-dialog">
+					<form action="{{ url_for('main.edit_profile') }}" method="post">
+					    {{ edit_profile_form.hidden_tag() }}
+					    <div class="mb-4">
+					        <div class="mb-2">{{ edit_profile_form.full_name.label }}</div>
+					        <div>{{ edit_profile_form.full_name(class_="text-input") }}</div>
+					        {% for error in edit_profile_form.full_name.errors %}
+					        <span class="alert alert-danger">{{ error }}</span>
+					        {% endfor %}
+					    </div>
+					    <div class="mb-4">
+					        <div>{{ edit_profile_form.about_me.label }}</div>
+					        <div>{{ edit_profile_form.about_me(class_="text-input") }}</div>
+					        {% for error in edit_profile_form.about_me.errors %}
+					        <span class="alert alert-danger">{{ error }}</span>
+					        {% endfor %}
+					    </div>
+					    <div class="mb-4">
+				            <div>{{ edit_profile_form.date_of_birth.label }}</div>
+				            <div>{{ edit_profile_form.date_of_birth(class_="text-input") }}</div>
+					        {% for error in edit_profile_form.date_of_birth.errors %}
+					        <span class="alert alert-danger">{{ error }}</span>
+					        {% endfor %}
+					    </div>
+					    <div class="flex justify-end mb-4">
+					        {{ edit_profile_form.submit(class_="btn btn-primary") }}
+					    </div>
+					</form>
+				</div>
+				{% endif %}
+			</div>
+			<div id="my_post">
+				{% for post in posts %}
+					{% include "_post.html" %}
+				{% endfor %}
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block tail %}
+{{ super() }}
+<script type="text/javascript">
+	$(document).ready(function() {
+		$("#tabs").tabs({ active: 1 });
+		$(".ui-tabs-nav").children(".ui-tabs-tab").each(setActiveTab);		
+		$(".ui-tabs-nav").click(function(evt) {
+			$(this).children(".ui-tabs-tab").each(setActiveTab);
+		});
+
+		$("#edit-dialog").dialog({ autoOpen: false, modal: true });
+		$("#toggle-edit").click(function() {
+			$("#edit-dialog").dialog("open");
+			$(".ui-dialog").removeAttr("style");
+			$(".ui-dialog").removeClass("hidden");
+			$(".ui-dialog").addClass("absolute top-0 left-0 w-full h-screen bg-black bg-opacity-30 flex flex-column justify-center items-center");
+			$("#edit-dialog").removeAttr("style");
+			$("#edit-dialog").addClass("bg-white w-11/12 sm:w-8/12 md:w-1/2 lg:w-5/12 xl:w-2/6 2xl:w-1/2 p-4 rounded border border-gray-400");
+			$("#edit-dialog").prepend($(".ui-dialog-titlebar"));
+			$(".ui-dialog-titlebar").addClass("flex justify-end mb-6");
+			$(".ui-dialog-titlebar").find("button").removeAttr("title");
+			$(".ui-dialog-titlebar").find("button").html(`
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-circle w-5 h-5" viewBox="0 0 16 16">
+					<path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+					<path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+				</svg>
+			`);
+		});
+		$(".ui-dialog").removeAttr("style");
+		$(".ui-dialog").addClass("hidden");
+	});
+
+	function setActiveTab() {
+		if ($(this).attr("class").split(" ").includes("ui-state-active")) 
+			$(this).addClass("active");
+		else
+			$(this).removeClass("active");
+	}
+</script>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "auth_layout.html" %}
+
+{% block form %}
+<form action="" method="post">
+    {{ form.hidden_tag() }}
+    <div class="mb-4">
+        <div class="mb-2">{{ form.email.label }}</div>
+        <div>{{ form.email(class_="text-input") }}</div>
+        {% for error in form.email.errors %}
+        <span class="alert alert-danger">{{ error }}</span>
+        {% endfor %}
+    </div>
+    <div class="mb-4">
+        <div>{{ form.password.label }}</div>
+        <div>{{ form.password(class_="text-input") }}</div>
+        {% for error in form.password.errors %}
+        <span class="alert alert-danger">{{ error }}</span>
+        {% endfor %}
+    </div>
+    <div class="mb-4">
+        <div class="flex items-center">
+            <div class="mr-1">{{ form.remember_me() }}</div>
+            <div>{{ form.remember_me.label }}</div>
+        </div>
+        {% for error in form.remember_me.errors %}
+        <span class="alert alert-danger">{{ error }}</span>
+        {% endfor %}
+    </div>
+    <div class="flex justify-center mb-4">
+        {{ form.submit(class_="btn btn-primary") }}
+    </div>
+</form>
+<p>New User? <a class="link" href="{{ url_for('auth.register') }}">Register</a></p>
+<p>
+    Forgot Your Password?
+    <a class="link" href="{{ url_for('auth.reset_password_request') }}">Reset It</a>
+</p>
+{% endblock %}

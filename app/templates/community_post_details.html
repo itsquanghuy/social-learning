@@ -1,0 +1,272 @@
+{% extends "main_layout.html" %}
+
+{% set joined = current_user.joined(community) %}
+
+{% block app_content %}
+<div class="grid grid-cols-3 gap-2 p-2">
+	{% with messages = get_flashed_messages() %}
+	{% if messages %}
+	    {% for message in messages %}
+	    <div class="alert alert-info col-span-3">{{ message }}</div>
+	    {% endfor %}
+	{% endif %}
+	{% endwith %}
+	<div class="col-span-2 py-3 px-4 overflow-y-scroll h-screen">
+		<div id="post-content">
+			<h1 class="text-8xl mb-6">{{ post.title }}</h1>
+			<div class="flex items-center mb-4">
+				<img class="block w-5 h-5 mr-2" src="{{ post.author.avatar(25) }}">
+				<p class="text-gray-500"><strong class="text-black">{{ post.author.full_name }}</strong> posted at {{ post.date_posted }}</p>
+			</div>
+			{% if joined %}
+				{% if post.author == current_user %}
+				<div class="flex items-center mb-10">
+					<button id="edit-post" class="block mr-1">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-fill" viewBox="0 0 16 16">
+						 	<path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/>
+						</svg>
+					</button>
+					<a href="{{ url_for('main.remove_post', post_id=post.id, next=[after_delete_page]) }}" class="block">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">
+						 	<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
+						</svg>
+					</a>
+				</div>
+				{% endif %}
+			{% endif %}
+			<div class="post">{{ post.content|safe }}</div>
+		</div>
+		{% if joined %}
+		<form id="post-form" class="hidden" action="" method="post">
+			{{ post_form.hidden_tag() }}
+			<div class="mb-4">
+		        <div>{{ post_form.title(class_="text-input") }}</div>
+		        {% for error in post_form.title.errors %}
+		        <span class="alert alert-danger">{{ error }}</span>
+		        {% endfor %}
+		    </div>
+		    <div class="mb-4">
+		        <div>{{ post_form.content(class_="w-full border rounded") }}</div>
+		        {% for error in post_form.content.errors %}
+		        <span class="alert alert-danger">{{ error }}</span>
+		        {% endfor %}
+		    </div>
+		    <div class="mb-4">
+		        <div class="flex items-center">
+		            <div class="mr-1">{{ post_form.turn_off_commenting() }}</div>
+		            <div>{{ post_form.turn_off_commenting.label }}</div>
+		        </div>
+		        {% for error in post_form.turn_off_commenting.errors %}
+		        <span class="alert alert-danger">{{ error }}</span>
+		        {% endfor %}
+		    </div>
+		    <div class="flex justify-end mb-4">
+		    	<button id="cancel-knowledge-btn" class="btn btn-secondary mr-2">Cancel</button>
+		        {{ post_form.submit(class_="btn btn-primary") }}
+		    </div>
+		</form>
+		{% endif %}
+	</div>
+	<div id="comment-container" class="border-l border-gray-200 pl-3 overflow-y-scroll h-screen">
+		{% if joined or community.visibility.name == "public" %}
+		<div id="comments" class="mb-5 pr-1"></div>
+		{% endif %}
+		{% if joined %}
+			{% if not post.turn_off_commenting %}
+			<form id="comment-form" class="border border-gray-200 rounded max-h-full" action="" method="post">
+				{{ comment_form.hidden_tag() }}
+				<div class="border-b border-gray-200">{{ comment_form.comment(class_="w-full p-2 appearance-none focus:outline-none focus:border-none") }}</div>
+				<div class="flex justify-end p-2">
+			        {{ comment_form.submit(class_="btn btn-primary") }}
+			    </div>
+		        {% for error in comment_form.comment.errors %}
+		        <span class="alert alert-danger">{{ error }}</span>
+		        {% endfor %}
+			</form>
+			{% else %}
+			<p class="text-center">Comment feature has been turned off</p>
+			{% endif %}
+		{% endif %}
+	</div>
+</div>
+{% endblock %}
+
+{% block tail %}
+{{ super() }}
+{{ ckeditor.load() }}
+{{ ckeditor.config(name='content') }}
+<script type="text/javascript">
+	const comments = $("#comments");
+	const commentSection = $("#comment-container");
+	{% if joined %}
+	const commentForm = $("#comment-form");
+	const postContent = $("#post-content");
+	const postForm = $("#post-form");
+	{% endif %}
+
+	$(document).ready(function() {
+		{% if joined %}
+		$("#edit-post").click(function() {
+			postContent.addClass("hidden");
+			postForm.removeClass("hidden");
+		});
+
+		$("#cancel-knowledge-btn").click(function(evt) {
+			postContent.removeClass("hidden");
+			postForm.addClass("hidden");
+			evt.preventDefault();
+		});
+		{% endif %}
+
+		getComments();
+
+		{% if joined %}
+		commentForm.submit(function(evt) {
+			const fd = new FormData();
+			$(this).serializeArray().forEach((obj, index) => fd.append(obj.name, obj.value));
+
+			$.ajax({
+				url: "/create_comment/{{ post.id }}",
+				data: fd,
+				cache: false,
+				processData: false,
+				contentType: false,
+				type: "POST",
+				success: function(data) {
+					commentForm.trigger("reset");
+					refreshComments();
+				}
+			});
+
+			evt.preventDefault();
+		});
+		{% endif %}
+
+		$(".post").find("img").removeAttr("style");
+		$(".post").find("table").removeAttr("style");
+	});
+
+	function scrollBottomCommentSection() {
+		commentSection.scrollTop(commentSection[0].scrollHeight);
+	}
+
+	function commentHTML(item) {
+		return `
+			<div class="border-b border-gray-200 py-4">
+				<div class="flex justify-between items-center">
+					<div class="flex items-center mb-1">
+						<img class="block w-5 h-5 mr-2" src="${item.user.avatar}">
+						<p class="text-gray-500"><strong class="text-black">${item.user.full_name}</strong> commented at ${item.date_posted}</p>
+					</div>
+					{% if joined %}
+					${item.user.id === {{ current_user.id }} ? 
+						`<div class="ml-3 flex items-center" id="${item.id}">
+							<button class="block mr-1 edit-comment-btn">
+								<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-fill" viewBox="0 0 16 16">
+								 	<path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/>
+								</svg>
+							</button>
+							<button class="block remove-comment-btn">
+								<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">
+								 	<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
+								</svg>
+							</button>
+						</div>` : ``
+					}
+					{% endif %}
+				</div>
+				<p id="comment-content">${item.content}</p>
+			</div>
+		`;
+	}
+
+	function getComments() {
+		$.getJSON("/get_comments/{{ post.id }}", function(data) {
+			data.forEach((item) => {
+				comments.html(comments.html() + commentHTML(item));
+			});
+
+			{% if joined %}
+			$(".remove-comment-btn").click(function(evt) {
+				$.ajax({
+					url: `/remove_comment/${$(evt.currentTarget).parent().attr("id")}`,
+					cache: false,
+					processData: false,
+					contentType: false,
+					type: "DELETE",
+					success: function(data) {
+						refreshComments();
+					}
+				});
+				evt.preventDefault();
+			});
+
+			$(".edit-comment-btn").click(function(evt) {
+				const id = $(evt.currentTarget).parent().attr("id");
+				const editCommentForm = $(commentForm.clone()[0]);
+				const commentActions = $(evt.currentTarget).parent();
+				const commentContent = $(evt.currentTarget).parent().parent().next();
+				const commentContentContainer = $(evt.currentTarget).parent().parent();
+
+				function toggleEditComment(opened) {
+					if (opened) {
+						commentActions.addClass("hidden");
+						commentContent.addClass("hidden");
+						commentContentContainer.after(editCommentForm);
+					} else {
+						commentActions.removeClass("hidden");
+						commentContent.removeClass("hidden");
+						editCommentForm.trigger("reset");
+						editCommentForm.remove();
+					}
+				}
+
+				editCommentForm.attr("id", `edit-comment-form-${id}`);
+				editCommentForm.find("#csrf_token").attr("id", `edit-csrf_token-${id}`);
+				editCommentForm.find("#comment").attr("id", `edit-comment-${id}`);
+				editCommentForm.find("#submit").attr("id", `edit-submit-${id}`);
+
+				editCommentForm.find(`#edit-comment-${id}`).val(commentContent.text());
+				editCommentForm.find(`#edit-submit-${id}`).before(`<button id="cancel-edit-comment-${id}" class="btn btn-secondary mr-2">Cancel</button>`);
+
+				toggleEditComment(true)
+
+				editCommentForm.find(`#cancel-edit-comment-${id}`).click(function(evt) {
+					toggleEditComment(false);
+					evt.preventDefault();
+				});
+
+				editCommentForm.submit(function(evt) {
+					const fd = new FormData();
+					$(this).serializeArray().forEach((obj, index) => fd.append(obj.name, obj.value));
+
+					$.ajax({
+						url: `/edit_comment/${id}`,
+						data: fd,
+						cache: false,
+						processData: false,
+						contentType: false,
+						type: "PUT",
+						success: function(data) {
+							toggleEditComment(false);
+							refreshComments();
+						}
+					});
+
+					evt.preventDefault();
+				});
+
+				evt.preventDefault();
+			});
+			{% endif %}
+
+			scrollBottomCommentSection();
+		});
+	}
+
+	function refreshComments() {
+		comments.html("");
+		getComments();
+	}
+</script>
+{% endblock %}
