@@ -34,11 +34,11 @@
                     </svg>
                 </a>
             </li>
-            <li class="ml-4 relative">
-                <button id="user-dropdown" class="block">
+            <li id="user-dropdown" class="ml-4 relative">
+                <button v-on:click="toggleDropdown" class="block">
                     <img class="w-12 h-12" src="{{ current_user.avatar(25) }}">
                 </button>
-                <div id="popover" class="absolute right-0 bg-white z-50 border rounded border-gray-200 hidden">
+                <div v-if="opened" class="absolute right-0 bg-white z-50 border rounded border-gray-200">
                     <a class="block hover:bg-gray-200 p-2" href="{{ url_for('main.user', user_id=current_user.id) }}">Profile</a>
                     <a class="block hover:bg-gray-200 p-2" href="{{ url_for('auth.logout') }}">Logout</a>
                 </div>
@@ -54,19 +54,5 @@
 
 {% block tail %}
 {{ super() }}
-<script type="text/javascript">
-    let dropdownOpened = false;
-
-    $("#user-dropdown").click(function() {
-        const popover = $("#popover");
-
-        if (dropdownOpened) {
-            popover.addClass("hidden");
-            dropdownOpened = false;
-        } else {
-            popover.removeClass("hidden");
-            dropdownOpened = true;
-        }
-    });
-</script>
+<script type="text/javascript" src="{{ url_for('static', filename='dist/js/user-dropdown.js') }}"></script>
 {% endblock %}
